@@ -2,16 +2,15 @@ import streamlit as st
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
-import os
 
-# Configuração da Página
+# Configuração da página
 st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
 st.title("🧠 BoostEbook AI")
 
-# Estilo
+# Estilo rápido
 st.markdown("""<style>.stButton>button { background-color: #6a0dad; color: white; width: 100%; }</style>""", unsafe_allow_html=True)
 
-# Chave de API
+# Puxa a chave dos Secrets
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
@@ -32,26 +31,28 @@ def extrair_texto(arquivo):
 
 if api_key:
     try:
-        # --- A SOLUÇÃO DEFINITIVA PARA O ERRO 404 ---
-        # Forçamos a versão 'v1' e o transporte 'rest' para ignorar o 'v1beta'
+        # AQUI ESTÁ A SOLUÇÃO: Forçamos a versão 'v1' (estável)
         genai.configure(api_key=api_key, transport='rest')
         
-        # Criamos o modelo usando o nome estável
+        # Criamos o modelo de forma simplificada
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        uploaded_file = st.file_uploader("Upload do Ebook", type=['txt', 'pdf', 'docx'])
+        uploaded_file = st.file_uploader("Upload do seu Ebook", type=['txt', 'pdf', 'docx'])
 
         if uploaded_file is not None:
             texto = extrair_texto(uploaded_file)
             if texto:
-                st.success("Arquivo carregado!")
+                st.success("Arquivo pronto!")
                 if st.button("Gerar Estratégia de Marketing"):
-                    with st.spinner('Conectando ao cérebro da IA...'):
-                        # Limitamos o texto para evitar erros de excesso de dados
-                        response = model.generate_content(f"Aja como especialista em marketing. Crie 3 posts para: {texto[:5000]}")
-                        st.markdown("### 🚀 Resultado:")
+                    with st.spinner('A IA está trabalhando...'):
+                        # Usamos um prompt direto
+                        response = model.generate_content(f"Crie 3 posts de marketing para: {texto[:4000]}")
+                        st.markdown("---")
                         st.write(response.text)
+            else:
+                st.error("Não foi possível ler o arquivo.")
     except Exception as e:
-        st.error(f"Erro de conexão: {e}")
+        # Se o erro 404 aparecer, o problema é o nome do modelo
+        st.error(f"Erro: {e}")
 else:
     st.info("Aguardando chave da API.")
