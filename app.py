@@ -7,16 +7,16 @@ st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
 st.title("🧠 BoostEbook AI")
 
 # Puxa a chave dos Secrets
-api_key = st.secrets.get("GOOGLE_API_KEY") or st.sidebar.text_input("Gemini API Key", type="password")
+api_key = st.secrets.get("GOOGLE_API_KEY") or st.sidebar.text_input("Cole sua API Key aqui", type="password")
 
 def extrair_texto(arquivo):
     ext = arquivo.name.lower()
     try:
-        if ext.endswith('.txt'): return arquivo.read().decode("utf-8")
         if ext.endswith('.pdf'):
             return "".join([p.extract_text() or "" for p in PdfReader(arquivo).pages])
         if ext.endswith('.docx'):
             return "\n".join([p.text for p in Document(arquivo).paragraphs])
+        return arquivo.read().decode("utf-8")
     except: return None
 
 if api_key:
@@ -25,20 +25,24 @@ if api_key:
     if uploaded_file:
         texto = extrair_texto(uploaded_file)
         if texto:
-            st.success("Conteúdo carregado!")
-            if st.button("Gerar Estratégia de Marketing"):
-                with st.spinner('Conectando ao Google...'):
-                    # FORÇAMOS A VERSÃO ESTÁVEL (v1) VIA URL DIRETA
+            st.success("Arquivo carregado com sucesso!")
+            if st.button("Gerar Marketing Viral"):
+                with st.spinner('A IA está lendo seu livro...'):
+                    # USAMOS A URL ESTÁVEL (v1) QUE O CHAT DO STUDIO USA
                     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
-                    payload = {"contents": [{"parts": [{"text": f"Crie 3 posts de marketing para: {texto[:4000]}"}]}]}
+                    payload = {
+                        "contents": [{
+                            "parts": [{"text": f"Aja como um mestre do marketing digital. Com base neste texto, crie 3 posts para Instagram e 2 títulos de anúncios: {texto[:5000]}"}]
+                        }]
+                    }
                     
                     response = requests.post(url, json=payload)
                     
                     if response.status_code == 200:
-                        resultado = response.json()
-                        st.markdown("### 🚀 Resultado:")
-                        st.write(resultado['candidates'][0]['content']['parts'][0]['text'])
+                        res_data = response.json()
+                        st.markdown("### 🚀 Estratégia de Marketing:")
+                        st.write(res_data['candidates'][0]['content']['parts'][0]['text'])
                     else:
-                        st.error(f"Erro {response.status_code}: {response.text}")
+                        st.error(f"Erro na conexão (Status {response.status_code}). Verifique se a chave nos Secrets está correta.")
 else:
-    st.info("Insira sua API Key.")
+    st.info("Por favor, configure a chave API no menu lateral ou nos Secrets.")
