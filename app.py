@@ -4,7 +4,7 @@ from PyPDF2 import PdfReader
 from docx import Document
 
 # Configuração da Página
-st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
+st.set_page_config(page_title="Mkt Ebook26 AI", page_icon="🧠")
 st.title("🧠 BoostEbook AI")
 
 # Chave de API (Pega dos Secrets do Streamlit)
@@ -52,3 +52,4 @@ if api_key:
         st.error(f"Erro Crítico: {e}")
 else:
     st.info("Aguardando chave da API.")
+
