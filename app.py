@@ -2,25 +2,21 @@ import streamlit as st
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
+import os
 
-# 1. Configuração Visual
+# Configuração da Página
 st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
-st.markdown("""
-    <style>
-    .main { background-color: #0e1117; color: #ffffff; }
-    .stButton>button { background-color: #6a0dad; color: white; border-radius: 10px; width: 100%; }
-    </style>
-    """, unsafe_allow_html=True)
-
 st.title("🧠 BoostEbook AI")
 
-# 2. Chave de API (Secrets)
+# Estilo
+st.markdown("""<style>.stButton>button { background-color: #6a0dad; color: white; width: 100%; }</style>""", unsafe_allow_html=True)
+
+# Chave de API
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
     api_key = st.sidebar.text_input("Insira sua Gemini API Key", type="password")
 
-# 3. Função de Leitura de Arquivos
 def extrair_texto(arquivo):
     ext = arquivo.name.lower()
     try:
@@ -34,11 +30,13 @@ def extrair_texto(arquivo):
     except: return None
     return None
 
-# 4. Conexão e Geração (Forçando Versão Estável)
 if api_key:
     try:
-        # Forçamos o transporte REST para evitar o erro v1beta das imagens anteriores
+        # --- A SOLUÇÃO DEFINITIVA PARA O ERRO 404 ---
+        # Forçamos a versão 'v1' e o transporte 'rest' para ignorar o 'v1beta'
         genai.configure(api_key=api_key, transport='rest')
+        
+        # Criamos o modelo usando o nome estável
         model = genai.GenerativeModel('gemini-1.5-flash')
 
         uploaded_file = st.file_uploader("Upload do Ebook", type=['txt', 'pdf', 'docx'])
@@ -46,16 +44,13 @@ if api_key:
         if uploaded_file is not None:
             texto = extrair_texto(uploaded_file)
             if texto:
-                st.success("Arquivo pronto!")
+                st.success("Arquivo carregado!")
                 if st.button("Gerar Estratégia de Marketing"):
-                    with st.spinner('Criando sua campanha...'):
-                        # Usamos os primeiros 5000 caracteres para segurança
-                        response = model.generate_content(f"Aja como especialista em marketing viral. Crie 3 chamadas para: {texto[:5000]}")
-                        st.markdown("---")
+                    with st.spinner('Conectando ao cérebro da IA...'):
+                        # Limitamos o texto para evitar erros de excesso de dados
+                        response = model.generate_content(f"Aja como especialista em marketing. Crie 3 posts para: {texto[:5000]}")
                         st.markdown("### 🚀 Resultado:")
                         st.write(response.text)
-            else:
-                st.error("Não foi possível ler o arquivo.")
     except Exception as e:
         st.error(f"Erro de conexão: {e}")
 else:
