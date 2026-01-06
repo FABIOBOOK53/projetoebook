@@ -15,13 +15,13 @@ st.markdown("""
 
 st.title("🧠 BoostEbook AI")
 
-# 2. CHAVE DE API (Secrets)
+# 2. CHAVE DE API (Puxa dos Secrets do Streamlit)
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
     api_key = st.sidebar.text_input("Insira sua Gemini API Key", type="password")
 
-# 3. FUNÇÃO DE EXTRAÇÃO DE TEXTO
+# 3. FUNÇÃO PARA LER ARQUIVOS
 def extrair_texto(arquivo):
     ext = arquivo.name.lower()
     try:
@@ -35,15 +35,16 @@ def extrair_texto(arquivo):
     except: return None
     return None
 
-# 4. LÓGICA DE GERAÇÃO (Onde resolvemos o erro 404)
+# 4. LÓGICA DE GERAÇÃO (FORÇANDO VERSÃO ESTÁVEL)
 if api_key:
     try:
-        # --- AQUI ESTÁ A SOLUÇÃO DEFINITIVA ---
-        # Forçamos o uso da versão 'v1' (estável) em vez da 'v1beta'
+        # Configuração forçando o transporte estável para evitar o erro 404
         genai.configure(api_key=api_key, transport='rest')
         
-        # Usamos o nome do modelo sem prefixos complicados
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Criamos o modelo forçando a versão 'v1'
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
+        )
 
         uploaded_file = st.file_uploader("Upload do Ebook (PDF, DOCX ou TXT)", type=['txt', 'pdf', 'docx'])
 
@@ -53,17 +54,17 @@ if api_key:
                 st.success("Arquivo lido com sucesso!")
                 if st.button("Gerar Estratégia de Marketing"):
                     with st.spinner('A IA está criando sua estratégia...'):
-                        # Prompt simplificado para garantir a resposta
-                        prompt = f"Crie uma estratégia de marketing viral para este conteúdo: {texto_extraido[:5000]}"
+                        # Usamos um prompt direto e curto para testar a conexão
+                        prompt = f"Aja como um mestre do marketing. Crie 3 chamadas virais para este texto: {texto_extraido[:5000]}"
                         
-                        # Chamada forçando a versão estável
+                        # Chamada simples para a API
                         response = model.generate_content(prompt)
                         
                         st.markdown("---")
                         st.markdown("### 🚀 Resultado:")
                         st.write(response.text)
             else:
-                st.error("Não foi possível extrair o texto.")
+                st.error("Não foi possível ler o texto do arquivo.")
     except Exception as e:
         st.error(f"Erro de conexão: {e}")
 else:
