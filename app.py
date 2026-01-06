@@ -33,3 +33,4 @@ if api_key:
                     st.error(f"Erro de conexão: {e}")
 else:
     st.warning("⚠️ Chave API não encontrada nos Secrets.")
+ 
