@@ -5,7 +5,7 @@ from docx import Document
 
 # Configuração da Página
 st.set_page_config(page_title="Mkt Ebook26 AI", page_icon="🧠")
-st.title("🧠 BoostEbook AI")
+st.title("🧠 Mkt Ebook26 AI")
 
 # Chave de API (Pega dos Secrets do Streamlit)
 if "GOOGLE_API_KEY" in st.secrets:
@@ -52,4 +52,5 @@ if api_key:
         st.error(f"Erro Crítico: {e}")
 else:
     st.info("Aguardando chave da API.")
+
 
