@@ -3,25 +3,16 @@ import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
 
-# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
-
-st.markdown("""
-    <style>
-    .main { background-color: #0e1117; color: #ffffff; }
-    .stButton>button { background-color: #6a0dad; color: white; border-radius: 10px; width: 100%; font-weight: bold; }
-    </style>
-    """, unsafe_allow_html=True)
 
 st.title("🧠 BoostEbook AI")
 
-# 2. CHAVE DE API (Pegando dos Secrets)
+# Puxa a Key que você salvou nos Segredos
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
     api_key = st.sidebar.text_input("Insira sua Gemini API Key", type="password")
 
-# 3. FUNÇÃO DE LEITURA
 def extrair_texto(arquivo):
     ext = arquivo.name.lower()
     try:
@@ -35,32 +26,27 @@ def extrair_texto(arquivo):
     except: return None
     return None
 
-# 4. LÓGICA DE GERAÇÃO COM FIX PARA ERRO 404
 if api_key:
     try:
-        # --- O SEGREDO ESTÁ AQUI ---
-        # Configuramos a API forçando o transporte para 'rest' para evitar o erro v1beta
+        # O COMANDO ABAIXO FORÇA A CONEXÃO A FUNCIONAR SEM ERRO 404
         genai.configure(api_key=api_key, transport='rest')
         
-        # Usamos o modelo Flash que é o mais rápido e gratuito
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        uploaded_file = st.file_uploader("Upload do Ebook (PDF, DOCX ou TXT)", type=['txt', 'pdf', 'docx'])
+        uploaded_file = st.file_uploader("Upload do seu Ebook", type=['txt', 'pdf', 'docx'])
 
         if uploaded_file is not None:
-            texto_extraido = extrair_texto(uploaded_file)
-            if texto_extraido:
-                st.success("Arquivo pronto!")
-                if st.button("Gerar Marketing"):
-                    with st.spinner('A IA está analisando seu conteúdo...'):
-                        # Enviamos apenas o começo do texto para não travar
-                        prompt = f"Crie uma legenda de Instagram e 3 títulos de anúncios para este ebook: {texto_extraido[:6000]}"
+            texto = extrair_texto(uploaded_file)
+            if texto:
+                st.success("Arquivo lido com sucesso!")
+                if st.button("Gerar Estratégia de Marketing"):
+                    with st.spinner('Criando sua campanha...'):
+                        # Usamos os primeiros 6000 caracteres para o marketing
+                        prompt = f"Crie uma legenda de Instagram e 3 títulos de anúncios para: {texto[:6000]}"
                         response = model.generate_content(prompt)
-                        st.markdown("### 🚀 Resultado:")
+                        st.markdown("### 🚀 Campanha Gerada:")
                         st.write(response.text)
-            else:
-                st.error("Não foi possível ler o texto do arquivo.")
     except Exception as e:
-        st.error(f"Erro de conexão: {e}")
+        st.error(f"Erro de conexão com o Google: {e}")
 else:
-    st.info("Aguardando chave da API nos Segredos ou barra lateral.")
+    st.info("Aguardando configuração da chave API.")
