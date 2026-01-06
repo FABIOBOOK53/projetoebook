@@ -3,14 +3,11 @@ import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
 
-# Configuração da página
+# Configuração da Página
 st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
 st.title("🧠 BoostEbook AI")
 
-# Estilo rápido
-st.markdown("""<style>.stButton>button { background-color: #6a0dad; color: white; width: 100%; }</style>""", unsafe_allow_html=True)
-
-# Puxa a chave dos Secrets
+# Chave de API (Pega dos Secrets do Streamlit)
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
@@ -31,28 +28,27 @@ def extrair_texto(arquivo):
 
 if api_key:
     try:
-        # AQUI ESTÁ A SOLUÇÃO: Forçamos a versão 'v1' (estável)
+        # FORÇANDO A VERSÃO ESTÁVEL (v1) E O TRANSPORTE REST
         genai.configure(api_key=api_key, transport='rest')
         
-        # Criamos o modelo de forma simplificada
+        # Usamos o modelo flash que é o mais compatível
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        uploaded_file = st.file_uploader("Upload do seu Ebook", type=['txt', 'pdf', 'docx'])
+        uploaded_file = st.file_uploader("Upload do Ebook", type=['txt', 'pdf', 'docx'])
 
         if uploaded_file is not None:
             texto = extrair_texto(uploaded_file)
             if texto:
-                st.success("Arquivo pronto!")
+                st.success("Arquivo carregado com sucesso!")
                 if st.button("Gerar Estratégia de Marketing"):
-                    with st.spinner('A IA está trabalhando...'):
-                        # Usamos um prompt direto
-                        response = model.generate_content(f"Crie 3 posts de marketing para: {texto[:4000]}")
+                    with st.spinner('A IA está processando...'):
+                        # Chamada simplificada para evitar erro de rota
+                        response = model.generate_content(f"Crie 3 posts de marketing para este livro: {texto[:5000]}")
                         st.markdown("---")
                         st.write(response.text)
             else:
                 st.error("Não foi possível ler o arquivo.")
     except Exception as e:
-        # Se o erro 404 aparecer, o problema é o nome do modelo
-        st.error(f"Erro: {e}")
+        st.error(f"Erro Crítico: {e}")
 else:
     st.info("Aguardando chave da API.")
