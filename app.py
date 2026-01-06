@@ -5,7 +5,6 @@ from PyPDF2 import PdfReader
 st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
 st.title("🧠 BoostEbook AI")
 
-# Tenta ler a chave dos Secrets
 api_key = st.secrets.get("GOOGLE_API_KEY")
 
 if api_key:
@@ -17,8 +16,8 @@ if api_key:
         
         if st.button("Gerar Marketing"):
             with st.spinner('Consultando a IA...'):
-                # URL V1 ESTÁVEL
-                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+                # ALTERAMOS PARA gemini-pro QUE É O MODELO ESTÁVEL COMPATÍVEL
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
                 payload = {"contents": [{"parts": [{"text": f"Crie 3 posts de marketing para: {texto[:3000]}"}]}]}
                 
                 try:
@@ -27,9 +26,8 @@ if api_key:
                         st.markdown("### 🚀 Resultado:")
                         st.write(response.json()['candidates'][0]['content']['parts'][0]['text'])
                     else:
-                        # ESTA LINHA VAI MOSTRAR O ERRO REAL DO GOOGLE
-                        st.error(f"Resposta do Google (Erro {response.status_code}): {response.text}")
+                        st.error(f"Erro {response.status_code}: {response.text}")
                 except Exception as e:
                     st.error(f"Erro de conexão: {e}")
 else:
-    st.error("⚠️ A chave 'GOOGLE_API_KEY' não foi encontrada nos Secrets. Verifique a digitação.")
+    st.error("⚠️ Chave GOOGLE_API_KEY não encontrada nos Secrets.")
