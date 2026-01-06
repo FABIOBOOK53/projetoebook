@@ -2,11 +2,9 @@ import streamlit as st
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
-import io
 
 st.set_page_config(page_title="BoostEbook AI - Segredos Obscuros", page_icon="🧠")
 
-# Estilo Dark Mode
 st.markdown("""
     <style>
     .main { background-color: #0e1117; color: #ffffff; }
@@ -17,7 +15,7 @@ st.markdown("""
 st.title("🧠 BoostEbook AI")
 st.subheader("Transforme seu Ebook em Marketing Viral")
 
-# Configuração da API Key (Busca no Secrets do Streamlit)
+# Configuração da API Key
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
@@ -43,9 +41,11 @@ def extrair_texto(arquivo):
 
 if api_key:
     try:
-        # Configuração da IA com o modelo mais estável
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # TENTATIVA AUTOMÁTICA DE MODELOS
+        model_name = 'gemini-1.5-flash-latest' # Primeira opção (mais estável)
+        model = genai.GenerativeModel(model_name)
 
         uploaded_file = st.file_uploader("Faça upload do seu Ebook (PDF, Word ou TXT)", type=['txt', 'pdf', 'docx'])
 
@@ -53,31 +53,26 @@ if api_key:
             contexto = extrair_texto(uploaded_file)
             
             if contexto:
-                st.success("Conteúdo carregado com sucesso!")
+                st.success("Conteúdo carregado!")
                 if st.button("Gerar Estratégia de Marketing"):
-                    # Limitamos o texto para evitar erros de limite da API
-                    prompt = f"""
-                    Você é um especialista em marketing viral. 
-                    Baseado neste conteúdo: '{contexto[:8000]}', crie:
-                    1. Uma legenda para Instagram focada em curiosidade.
-                    2. Um roteiro de 15 segundos para Reels/TikTok.
-                    3. 3 títulos magnéticos para anúncios.
-                    Use um tom misterioso, elegante e provocativo.
-                    """
+                    prompt = f"Aja como um mestre do marketing. Baseado neste texto: '{contexto[:6000]}', crie 3 posts virais para Instagram e 1 roteiro de Reels. Tom misterioso."
                     
-                    with st.spinner('A IA está analisando seu conteúdo...'):
-                        # Chamada simplificada para evitar erro de versão
-                        response = model.generate_content(prompt)
-                        st.markdown("---")
-                        st.markdown("### 🚀 Sua Campanha Gerada:")
-                        st.write(response.text)
+                    with st.spinner('Conectando com a mente da IA...'):
+                        try:
+                            response = model.generate_content(prompt)
+                            st.markdown("---")
+                            st.markdown("### 🚀 Sua Campanha Gerada:")
+                            st.write(response.text)
+                        except Exception as e:
+                            # Se o primeiro modelo falhar, tenta o gemini-pro como backup
+                            st.warning("Tentando modelo secundário...")
+                            model_backup = genai.GenerativeModel('gemini-pro')
+                            response = model_backup.generate_content(prompt)
+                            st.write(response.text)
             else:
-                st.warning("Não foi possível extrair texto deste arquivo.")
+                st.warning("Arquivo vazio.")
     except Exception as e:
-        # Se der erro 404, avisamos de forma clara
-        if "404" in str(e):
-            st.error("Erro: Modelo não encontrado. Verifique se sua API Key está ativa no Google AI Studio.")
-        else:
-            st.error(f"Erro na IA: {e}")
+        st.error(f"Erro Crítico: {e}")
+        st.info("Dica: Se o erro persistir, gere uma nova chave no Google AI Studio.")
 else:
     st.info("Aguardando configuração da API Key.")
