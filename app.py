@@ -12,23 +12,25 @@ if api_key:
     if file:
         reader = PdfReader(file)
         texto = "".join([p.extract_text() or "" for p in reader.pages])
-        st.success("Leitura concluída!")
+        st.success("PDF lido com sucesso!")
         
         if st.button("🚀 GERAR ESTRATÉGIA"):
-            with st.spinner('IA Processando...'):
-                # URL COM O FORMATO DE COMPATIBILIDADE TOTAL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
-                
-                payload = {
-                    "contents": [{"parts": [{"text": f"Crie um post de marketing para: {texto[:3000]}"}]}]
-                }
+            with st.spinner('A IA está processando...'):
+                # Tentativa 1: A rota mais comum para chaves novas
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+                payload = {"contents": [{"parts": [{"text": f"Crie um post de marketing para: {texto[:3000]}"}]}]}
                 
                 res = requests.post(url, json=payload)
+                
+                # Se a tentativa 1 falhar (Erro 404), tentamos a rota alternativa (Plano B)
+                if res.status_code != 200:
+                    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+                    res = requests.post(url, json=payload)
+
                 if res.status_code == 200:
                     st.markdown("### 📈 Resultado:")
                     st.write(res.json()['candidates'][0]['content']['parts'][0]['text'])
                 else:
-                    # Isso vai nos mostrar se a chave foi bloqueada ou se o endereço mudou
-                    st.error(f"Erro {res.status_code}: {res.text}")
+                    st.error(f"Erro {res.status_code}. O Google não aceitou o pedido. Verifique se a chave foi copiada corretamente do Google AI Studio.")
 else:
     st.error("Configure a GOOGLE_API_KEY nos Secrets.")
