@@ -1,4 +1,3 @@
-Python
 import streamlit as st
 import google.generativeai as genai
 
@@ -44,3 +43,4 @@ if api_key:
                 st.write(response.text)
 else:
     st.warning("Por favor, insira sua chave da API do Google no menu lateral para começar de graça.")
+
