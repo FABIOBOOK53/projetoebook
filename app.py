@@ -3,25 +3,24 @@ import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
 
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. Configuração Visual
 st.set_page_config(page_title="BoostEbook AI", page_icon="🧠")
-
 st.markdown("""
     <style>
     .main { background-color: #0e1117; color: #ffffff; }
-    .stButton>button { background-color: #6a0dad; color: white; border-radius: 10px; width: 100%; font-weight: bold; }
+    .stButton>button { background-color: #6a0dad; color: white; border-radius: 10px; width: 100%; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🧠 BoostEbook AI")
 
-# 2. CHAVE DE API (Puxa dos Secrets do Streamlit)
+# 2. Chave de API (Secrets)
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
     api_key = st.sidebar.text_input("Insira sua Gemini API Key", type="password")
 
-# 3. FUNÇÃO PARA LER ARQUIVOS
+# 3. Função de Leitura de Arquivos
 def extrair_texto(arquivo):
     ext = arquivo.name.lower()
     try:
@@ -35,36 +34,28 @@ def extrair_texto(arquivo):
     except: return None
     return None
 
-# 4. LÓGICA DE GERAÇÃO (FORÇANDO VERSÃO ESTÁVEL)
+# 4. Conexão e Geração (Forçando Versão Estável)
 if api_key:
     try:
-        # Configuração forçando o transporte estável para evitar o erro 404
+        # Forçamos o transporte REST para evitar o erro v1beta das imagens anteriores
         genai.configure(api_key=api_key, transport='rest')
-        
-        # Criamos o modelo forçando a versão 'v1'
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-        )
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
-        uploaded_file = st.file_uploader("Upload do Ebook (PDF, DOCX ou TXT)", type=['txt', 'pdf', 'docx'])
+        uploaded_file = st.file_uploader("Upload do Ebook", type=['txt', 'pdf', 'docx'])
 
         if uploaded_file is not None:
-            texto_extraido = extrair_texto(uploaded_file)
-            if texto_extraido:
-                st.success("Arquivo lido com sucesso!")
+            texto = extrair_texto(uploaded_file)
+            if texto:
+                st.success("Arquivo pronto!")
                 if st.button("Gerar Estratégia de Marketing"):
-                    with st.spinner('A IA está criando sua estratégia...'):
-                        # Usamos um prompt direto e curto para testar a conexão
-                        prompt = f"Aja como um mestre do marketing. Crie 3 chamadas virais para este texto: {texto_extraido[:5000]}"
-                        
-                        # Chamada simples para a API
-                        response = model.generate_content(prompt)
-                        
+                    with st.spinner('Criando sua campanha...'):
+                        # Usamos os primeiros 5000 caracteres para segurança
+                        response = model.generate_content(f"Aja como especialista em marketing viral. Crie 3 chamadas para: {texto[:5000]}")
                         st.markdown("---")
                         st.markdown("### 🚀 Resultado:")
                         st.write(response.text)
             else:
-                st.error("Não foi possível ler o texto do arquivo.")
+                st.error("Não foi possível ler o arquivo.")
     except Exception as e:
         st.error(f"Erro de conexão: {e}")
 else:
