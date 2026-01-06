@@ -15,12 +15,19 @@ st.markdown("""
 st.title("🧠 BoostEbook AI")
 st.subheader("Transforme seu Ebook em Marketing Viral")
 
-# Configurar a API Key (O usuário insere a dele ou você deixa a sua escondida)
-api_key = st.sidebar.text_input("Insira sua Gemini API Key", type="password")
+# --- NOVO BLOCO DE CONFIGURAÇÃO DA API ---
+# Tenta pegar a chave automaticamente do "Secrets" que você configurou
+if "GOOGLE_API_KEY" in st.secrets:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+else:
+    # Caso os segredos falhem, ainda permite digitar na lateral como backup
+    api_key = st.sidebar.text_input("Insira sua Gemini API Key", type="password")
+# ------------------------------------------
 
 if api_key:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-pro')
+    # Use 'gemini-1.5-flash' ou 'gemini-pro' dependendo da sua preferência
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
     uploaded_file = st.file_uploader("Faça upload de um capítulo ou resumo do seu Ebook", type=['txt', 'md'])
 
@@ -38,9 +45,11 @@ if api_key:
             """
             
             with st.spinner('A IA está lendo as sombras do seu livro...'):
-                response = model.generate_content(prompt)
-                st.markdown("### 🚀 Sua Campanha Gerada:")
-                st.write(response.text)
+                try:
+                    response = model.generate_content(prompt)
+                    st.markdown("### 🚀 Sua Campanha Gerada:")
+                    st.write(response.text)
+                except Exception as e:
+                    st.error(f"Erro ao gerar conteúdo: {e}")
 else:
-    st.warning("Por favor, insira sua chave da API do Google no menu lateral para começar de graça.")
-
+    st.warning("Aguardando configuração da API Key no painel Secrets ou menu lateral.")
