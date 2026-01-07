@@ -6,27 +6,81 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import urllib.parse
+from PIL import Image
+import os
 
-# Configuração da Página
-st.set_page_config(page_title="BoostEbook AI - Pro", layout="wide")
-st.title("🧠 BoostEbook AI")
+# --- 1. CONFIGURAÇÃO DE TEMA DARK PERMANENTE ---
+st.set_page_config(page_title="FAMORTISCO AI", page_icon="🐦‍⬛", layout="centered")
+
+# Injeção de CSS para forçar o Dark Mode e as cores da marca
+st.markdown("""
+    <style>
+    /* Fundo principal e textos */
+    .stApp {
+        background-color: #000000;
+        color: #E0E0E0;
+    }
+    /* Estilização dos Botões */
+    .stButton>button {
+        width: 100%;
+        border-radius: 8px;
+        background-color: #4A0404; /* Vermelho Sangue Escuro */
+        color: #ffffff;
+        border: 1px solid #8B0000;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #8B0000;
+        border: 1px solid #FF0000;
+    }
+    /* Botão do WhatsApp Especial */
+    div.stLinkButton > a {
+        background-color: #075E54 !important;
+        color: white !important;
+        border-radius: 8px;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        padding: 10px;
+        font-weight: bold;
+        border: 1px solid #128C7E;
+    }
+    /* Inputs de texto */
+    input {
+        background-color: #1A1A1A !parse !important;
+        color: white !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- 2. EXIBIÇÃO DO LOGO ---
+# O código procura pelo arquivo exatamente como você nomeou no GitHub
+logo_path = "LOGO2025NOME.JPG"
+if os.path.exists(logo_path):
+    logo = Image.open(logo_path)
+    st.image(logo, use_container_width=True)
+else:
+    st.title("🐦‍⬛ FAMORTISCO AI")
+    st.warning(f"Aviso: Arquivo {logo_path} não encontrado no repositório.")
+
+st.markdown("<h2 style='text-align: center; color: #8B0000;'>Estratégias de Redenção Literária</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 1. Configurações via Secrets (Streamlit Cloud)
+# --- 3. CONFIGURAÇÕES (SECRETS) ---
 api_key = st.secrets.get("GOOGLE_API_KEY")
 email_user = st.secrets.get("EMAIL_REMETENTE")
 email_pass = st.secrets.get("EMAIL_SENHA")
-meu_zap = st.secrets.get("MEU_WHATSAPP", "") # Pega dos Secrets se existir
+meu_zap = st.secrets.get("MEU_WHATSAPP", "")
 
-# Função para Enviar E-mail
+# Função de E-mail
 def enviar_email(destino, conteudo):
     try:
         msg = MIMEMultipart()
         msg['From'] = email_user
         msg['To'] = destino
-        msg['Subject'] = "🚀 Estratégia de Marketing - BoostEbook AI"
+        msg['Subject'] = "📜 Sua Estratégia FAMORTISCO AI"
         msg.attach(MIMEText(conteudo, 'plain'))
-        
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(email_user, email_pass)
@@ -34,79 +88,64 @@ def enviar_email(destino, conteudo):
         server.quit()
         return True
     except Exception as e:
-        st.error(f"Erro no envio de e-mail: {e}")
+        st.error(f"Erro no portal de e-mail: {e}")
         return False
 
-# 2. Upload de Arquivo
-file = st.file_uploader("Suba seu ebook (PDF ou DOCX)", type=['pdf', 'docx'])
+# --- 4. FLUXO DE TRABALHO ---
+arquivo = st.file_uploader("Suba o Manuscrito (PDF ou DOCX)", type=['pdf', 'docx'])
 
-if file and api_key:
+if arquivo and api_key:
     try:
-        # Extração de Texto para PDF ou DOCX
-        texto_extraido = ""
-        if file.type == "application/pdf":
-            reader = PdfReader(file)
-            texto_extraido = "".join([p.extract_text() or "" for p in reader.pages[:10]])
+        # Extração de texto para ambos os formatos
+        if arquivo.type == "application/pdf":
+            reader = PdfReader(arquivo)
+            texto = "".join([p.extract_text() or "" for p in reader.pages[:10]])
         else:
-            doc = Document(file)
-            texto_extraido = "\n".join([p.text for p in doc.paragraphs[:100]])
+            doc = Document(arquivo)
+            texto = "\n".join([p.text for p in doc.paragraphs[:100]])
 
-        if st.button("🚀 GERAR ESTRATÉGIA COMPLETA"):
-            # Rota do Gemini 3 Flash que validamos no chat do AI Studio
+        if st.button("🔥 INVOCAR ESTRATÉGIA"):
+            # Rota definitiva validada nos logs e no AI Studio
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
             
             prompt = f"""
-            Você é um especialista em marketing literário. Com base no texto: {texto_extraido[:3500]}
-            1. Crie 3 roteiros de 15s para Reels/TikTok.
-            2. Crie 1 roteiro sensorial ASMR.
-            3. Escreva um e-mail de vendas irresistível.
-            4. Defina o público-alvo ideal.
+            Você é um mestre de marketing para literatura sombria e gótica. 
+            Com base neste texto: {texto[:3500]}
+            1. Crie 3 roteiros cinematográficos para Reels.
+            2. Crie 1 roteiro de ASMR focado na atmosfera do livro.
+            3. Escreva um e-mail de vendas visceral para sua audiência.
             """
             
-            with st.spinner('A IA está analisando seu livro...'):
+            with st.spinner('Processando a essência do seu livro...'):
                 response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
-                
                 if response.status_code == 200:
-                    resultado = response.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.session_state['resultado'] = resultado
-                    st.balloons()
+                    st.session_state['resultado'] = response.json()['candidates'][0]['content']['parts'][0]['text']
+                    st.success("A estratégia foi gerada com sucesso.")
                 else:
-                    st.error(f"Erro na IA: {response.status_code}")
-                    st.write(response.text)
+                    st.error(f"Erro {response.status_code}: A IA não respondeu.")
 
-        # 3. Exibição e Disparos
+        # Exibição e Canais de Disparo
         if 'resultado' in st.session_state:
-            st.markdown("### 📊 Resultado da Estratégia")
-            st.info(st.session_state['resultado'])
+            st.markdown("### 🖋️ O Veredito")
+            st.markdown(f"<div style='background-color: #121212; padding: 20px; border-radius: 10px; border: 1px solid #4A0404;'>{st.session_state['resultado']}</div>", unsafe_allow_html=True)
             
             st.divider()
-            st.subheader("📲 Canais de Disparo")
-            
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("#### 📧 Enviar por E-mail")
-                email_dest = st.text_input("E-mail do Destinatário:", placeholder="cliente@email.com")
-                if st.button("📧 Disparar E-mail"):
-                    if not email_user or not email_pass:
-                        st.warning("Configure EMAIL_REMETENTE e EMAIL_SENHA nos Secrets.")
-                    elif enviar_email(email_dest, st.session_state['resultado']):
-                        st.success(f"Enviado para {email_dest}!")
+                st.markdown("#### 📧 Disparo por E-mail")
+                email_dest = st.text_input("E-mail do Alvo:", placeholder="exemplo@gmail.com")
+                if st.button("Enviar agora"):
+                    if enviar_email(email_dest, st.session_state['resultado']):
+                        st.success("E-mail enviado!")
 
             with col2:
-                st.markdown("#### 🟢 Enviar por WhatsApp")
-                num_whats = st.text_input("Número (com DDD):", value=meu_zap, placeholder="5511999999999")
-                
+                st.markdown("#### 🟢 Disparo por WhatsApp")
+                num_whats = st.text_input("Número do Cliente:", value=meu_zap)
                 if num_whats:
-                    # Limita o texto para não quebrar o link do WhatsApp
-                    texto_curto = st.session_state['resultado'][:1500]
-                    texto_url = urllib.parse.quote(f"*🚀 ESTRATÉGIA BOOST EBOOK AI*\n\n{texto_curto}...")
-                    link_zap = f"https://api.whatsapp.com/send?phone={num_whats}&text={texto_url}"
-                    st.link_button("🟢 Abrir no WhatsApp", link_zap)
+                    resumo_zap = f"*🚀 FAMORTISCO AI: ESTRATÉGIA GÓTICA*\n\n{st.session_state['resultado'][:1500]}..."
+                    link_zap = f"https://api.whatsapp.com/send?phone={num_whats}&text={urllib.parse.quote(resumo_zap)}"
+                    st.link_button("Abrir WhatsApp", link_zap)
 
     except Exception as e:
-        st.error(f"Erro no processamento: {e}")
-
-else:
-    if not api_key:
-        st.warning("⚠️ Adicione sua GOOGLE_API_KEY nos Secrets do Streamlit.")
+        st.error(f"Erro inesperado: {e}")
