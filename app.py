@@ -36,25 +36,21 @@ st.markdown("""
         padding: 12px;
         font-weight: bold;
         text-decoration: none;
-        border: 1px solid #128C7E;
     }
     .stTextArea textarea { background-color: #FFFFFF !important; color: #1A1A1A !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. EXIBIÇÃO DO LOGO (AJUSTADO PARA O GITHUB) ---
-# Tenta carregar o logo com o nome exato fornecido
-logo_nome = "LOGO 2025 NOME.jpg"
+# --- 2. EXIBIÇÃO DO LOGO (NOME CORRIGIDO CONFORME GITHUB) ---
+logo_nome = "LOGO2025NOME.jpg" # Nome exato que aparece no seu print do GitHub
 try:
     if os.path.exists(logo_nome):
-        img = Image.open(logo_nome)
-        st.image(img, use_container_width=True)
+        st.image(Image.open(logo_nome), use_container_width=True)
     else:
         st.title("🐦‍⬛ FAMORTISCO AI")
-        st.warning(f"Aviso: O arquivo '{logo_nome}' não foi detectado no repositório.")
+        st.warning(f"Aviso: O arquivo '{logo_nome}' não foi detectado na raiz do repositório.")
 except Exception as e:
     st.title("🐦‍⬛ FAMORTISCO AI")
-    st.error(f"Erro ao carregar imagem: {e}")
 
 # --- 3. CONFIGURAÇÕES (SECRETS) ---
 api_key = st.secrets.get("GOOGLE_API_KEY")
@@ -75,8 +71,7 @@ def enviar_email(destino, conteudo):
         server.send_message(msg)
         server.quit()
         return True
-    except Exception as e:
-        st.error(f"Erro no e-mail: {e}")
+    except:
         return False
 
 # --- 4. FLUXO PRINCIPAL ---
@@ -96,37 +91,29 @@ if arquivo and api_key:
 
         if st.button("🚀 GERAR MINHA ESTRATÉGIA"):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
-            prompt = f"Você é um estrategista literário. Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_extraido[:3500]}"
+            prompt = f"Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_extraido[:3500]}"
             
-            with st.spinner('Gerando sua estratégia...'):
+            with st.spinner('Gerando...'):
                 response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
                 if response.status_code == 200:
                     st.session_state['resultado'] = response.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.success("Estratégia Invocada!")
+                    st.success("Sucesso!")
                 else:
-                    st.error("Erro na comunicação com a IA.")
+                    st.error("Erro na IA.")
 
         if 'resultado' in st.session_state:
-            st.markdown("### 🖋️ O Plano Mestre:")
             st.info(st.session_state['resultado'])
-            
             st.divider()
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown("#### 📧 Enviar por E-mail")
                 email_dest = st.text_input("E-mail de destino:")
                 if st.button("Disparar E-mail"):
                     if enviar_email(email_dest, st.session_state['resultado']):
                         st.success("Enviado!")
             with c2:
-                st.markdown("#### 🟢 Enviar por WhatsApp")
-                num = st.text_input("Número (DDD):", value=meu_zap)
+                num = st.text_input("WhatsApp:", value=meu_zap)
                 if num:
-                    resumo_zap = f"*🚀 FAMORTISCO AI: ESTRATÉGIA*\n\n{st.session_state['resultado'][:1500]}..."
-                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resumo_zap)}"
+                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(st.session_state['resultado'][:1500])}"
                     st.link_button("Abrir WhatsApp", link)
     except Exception as e:
-        st.error(f"Ocorreu um erro técnico: {e}")
-else:
-    if not api_key:
-        st.warning("⚠️ Chave da API (GOOGLE_API_KEY) não configurada nos Secrets.")
+        st.error(f"Erro: {e}")
