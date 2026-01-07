@@ -1,17 +1,21 @@
 import streamlit as st
-import google.generativeai as genai
+from openai import OpenAI
 from PyPDF2 import PdfReader
 
 st.set_page_config(page_title="BoostEbook AI")
-st.title("🧠 BoostEbook AI")
+st.title("🧠 BoostEbook AI - Modo Estável")
 
+# Puxa a chave dos Secrets
 api_key = st.secrets.get("GOOGLE_API_KEY")
 
 if api_key:
-    # Configuração explícita da versão da API para 2026
-    genai.configure(api_key=api_key)
+    # Configura o cliente para usar o endpoint do Google via protocolo OpenAI
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
     
-    file = st.file_uploader("Suba seu ebook", type=['pdf'])
+    file = st.file_uploader("Suba seu ebook (PDF)", type=['pdf'])
     
     if file:
         try:
@@ -21,13 +25,17 @@ if api_key:
             
             if st.button("🚀 GERAR ESTRATÉGIA"):
                 with st.spinner('IA Processando...'):
-                    # Mudança crucial: usamos o modelo sem o prefixo 'models/'
-                    # e deixamos a SDK decidir a rota estável v1 automaticamente
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = model.generate_content(f"Resuma este conteúdo: {texto[:3000]}")
-                    st.write(response.text)
+                    response = client.chat.completions.create(
+                        model="gemini-1.5-flash",
+                        messages=[
+                            {"role": "system", "content": "Você é um especialista em marketing."},
+                            {"role": "user", "content": f"Crie uma estratégia para este conteúdo: {texto[:4000]}"}
+                        ]
+                    )
+                    st.subheader("Sua Estratégia:")
+                    st.write(response.choices[0].message.content)
                     st.balloons()
         except Exception as e:
             st.error(f"Erro: {e}")
 else:
-    st.error("Configure a GOOGLE_API_KEY nos Segredos (Secrets).")
+    st.error("Configure a GOOGLE_API_KEY nos Secrets.")
