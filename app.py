@@ -9,14 +9,17 @@ import urllib.parse
 from PIL import Image
 import os
 
-# --- 1. CONFIGURAÇÃO DE TEMA: CREME E ALTO CONTRASTE ---
+# --- 1. CONFIGURAÇÃO DE TEMA E IDIOMA ---
+# Adicionamos 'lang="pt-br"' no HTML para evitar traduções automáticas do navegador
 st.set_page_config(page_title="FAMORTISCO AI", page_icon="🐦‍⬛", layout="centered")
 
 st.markdown("""
+    <html lang="pt-br">
     <style>
     .stApp { background-color: #FFFDD0; color: #1A1A1A; }
     h1, h2, h3, p, span, label { color: #1A1A1A !important; }
-    /* Botão Azul Royal que vira Verde */
+    
+    /* Botões: Azul Royal que vira Verde */
     .stButton>button {
         width: 100%;
         border-radius: 8px;
@@ -28,6 +31,7 @@ st.markdown("""
         border: none;
     }
     .stButton>button:hover { background-color: #2E7D32 !important; }
+    
     /* Botão WhatsApp */
     div.stLinkButton > a {
         background-color: #25D366 !important;
@@ -40,6 +44,7 @@ st.markdown("""
         text-decoration: none;
     }
     </style>
+    </html>
     """, unsafe_allow_html=True)
 
 # --- 2. EXIBIÇÃO DO LOGO ---
@@ -73,8 +78,9 @@ def enviar_email(destino, conteudo):
     except:
         return False
 
-# --- 4. FLUXO PRINCIPAL EM PORTUGUÊS ---
+# --- 4. INTERFACE TOTALMENTE EM PORTUGUÊS ---
 st.markdown("### Procurar Arquivos")
+# O label do uploader é o que aparece para o usuário
 arquivo = st.file_uploader("Arraste ou selecione seu manuscrito (PDF ou DOCX)", type=['pdf', 'docx'], label_visibility="collapsed")
 
 if arquivo and api_key:
@@ -90,15 +96,15 @@ if arquivo and api_key:
 
         if st.button("🚀 GERAR MINHA ESTRATÉGIA"):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
-            prompt = f"Você é um estrategista literário experiente. Crie roteiros de Reels, ASMR e um e-mail de vendas impactante baseado neste texto: {texto_ext[:3500]}"
+            prompt = f"Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_ext[:3500]}"
             
             with st.spinner('A IA está analisando seu livro...'):
                 resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
                 if resp.status_code == 200:
                     st.session_state['resultado'] = resp.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.success("Estratégia Gerada com Sucesso!")
+                    st.success("Estratégia Gerada!")
                 else:
-                    st.error("Erro na comunicação com a IA. Verifique sua chave API.")
+                    st.error("Erro na IA. Verifique sua chave.")
 
         if 'resultado' in st.session_state:
             st.markdown("### 🖋️ O Plano Mestre:")
@@ -108,21 +114,17 @@ if arquivo and api_key:
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown("#### 📧 Enviar por E-mail")
-                dest = st.text_input("E-mail do destinatário:")
+                dest = st.text_input("E-mail do autor:")
                 if st.button("Disparar E-mail"):
                     if enviar_email(dest, st.session_state['resultado']):
-                        st.success("E-mail enviado com sucesso!")
-                    else:
-                        st.error("Falha ao enviar e-mail. Verifique as configurações.")
+                        st.success("Enviado com sucesso!")
             
             with c2:
                 st.markdown("#### 🟢 Enviar por WhatsApp")
-                num = st.text_input("Número do WhatsApp (com DDD):", value=meu_zap)
+                num = st.text_input("Número (com DDD):", value=meu_zap)
                 if num:
-                    resumo_zap = f"*🚀 FAMORTISCO AI: SUA ESTRATÉGIA*\n\n{st.session_state['resultado'][:1500]}..."
-                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resumo_zap)}"
+                    resumo = f"*🚀 FAMORTISCO AI*\n\n{st.session_state['resultado'][:1500]}..."
+                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resumo)}"
                     st.link_button("Abrir WhatsApp", link)
     except Exception as e:
-        st.error(f"Ocorreu um erro no processamento: {e}")
-elif not api_key:
-    st.warning("⚠️ Chave da API do Google não configurada nos Secrets do Streamlit.")
+        st.error(f"Erro: {e}")
