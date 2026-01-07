@@ -1,41 +1,36 @@
 import streamlit as st
-from openai import OpenAI
+import requests
 from PyPDF2 import PdfReader
 
-st.set_page_config(page_title="BoostEbook AI")
-st.title("🧠 BoostEbook AI - Modo Estável")
+st.set_page_config(page_title="BoostEbook AI - Final")
+st.title("🧠 BoostEbook AI - Conexão Direta")
 
-# Puxa a chave dos Secrets
 api_key = st.secrets.get("GOOGLE_API_KEY")
 
-if api_key:
-    # Configura o cliente para usar o endpoint do Google via protocolo OpenAI
-    client = OpenAI(
-        api_key=api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-    )
-    
-    file = st.file_uploader("Suba seu ebook (PDF)", type=['pdf'])
-    
-    if file:
-        try:
-            reader = PdfReader(file)
-            texto = "".join([p.extract_text() for p in reader.pages])
-            st.success("✅ Conteúdo lido!")
+file = st.file_uploader("Suba seu ebook (PDF)", type=['pdf'])
+
+if file and api_key:
+    reader = PdfReader(file)
+    texto = "".join([p.extract_text() for p in reader.pages])
+    st.success("✅ Texto extraído!")
+
+    if st.button("🚀 GERAR ESTRATÉGIA"):
+        # URL DIRETA DA API (Versão estável v1)
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+        
+        payload = {
+            "contents": [{"parts": [{"text": f"Crie uma estratégia de marketing para: {texto[:4000]}"}]}]
+        }
+        
+        with st.spinner('Comunicando diretamente com o Google...'):
+            response = requests.post(url, json=payload)
             
-            if st.button("🚀 GERAR ESTRATÉGIA"):
-                with st.spinner('IA Processando...'):
-                    response = client.chat.completions.create(
-                        model="gemini-1.5-flash",
-                        messages=[
-                            {"role": "system", "content": "Você é um especialista em marketing."},
-                            {"role": "user", "content": f"Crie uma estratégia para este conteúdo: {texto[:4000]}"}
-                        ]
-                    )
-                    st.subheader("Sua Estratégia:")
-                    st.write(response.choices[0].message.content)
-                    st.balloons()
-        except Exception as e:
-            st.error(f"Erro: {e}")
-else:
-    st.error("Configure a GOOGLE_API_KEY nos Secrets.")
+            if response.status_code == 200:
+                resultado = response.json()
+                texto_ia = resultado['candidates'][0]['content']['parts'][0]['text']
+                st.subheader("Sua Estratégia:")
+                st.write(texto_ia)
+                st.balloons()
+            else:
+                st.error(f"Erro na conexão direta: {response.status_code}")
+                st.write(response.text)
