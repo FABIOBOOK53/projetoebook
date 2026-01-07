@@ -15,18 +15,20 @@ st.set_page_config(page_title="FAMORTISCO AI", page_icon="🐦‍⬛", layout="c
 st.markdown("""
     <style>
     .stApp { background-color: #FFFDD0; color: #1A1A1A; }
-    h1, h2, h3, p, span, label, .stMarkdown { color: #1A1A1A !important; }
+    h1, h2, h3, p, span, label { color: #1A1A1A !important; }
+    /* Botão Azul Royal que vira Verde */
     .stButton>button {
         width: 100%;
         border-radius: 8px;
         background-color: #0047AB;
-        color: #FFFFFF !important;
-        border: none;
+        color: white !important;
         font-weight: bold;
         padding: 12px;
         transition: 0.3s;
+        border: none;
     }
-    .stButton>button:hover { background-color: #2E7D32 !important; color: #FFFFFF !important; }
+    .stButton>button:hover { background-color: #2E7D32 !important; }
+    /* Botão WhatsApp */
     div.stLinkButton > a {
         background-color: #25D366 !important;
         color: white !important;
@@ -37,22 +39,19 @@ st.markdown("""
         font-weight: bold;
         text-decoration: none;
     }
-    .stTextArea textarea { background-color: #FFFFFF !important; color: #1A1A1A !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. EXIBIÇÃO DO LOGO (NOME CORRIGIDO CONFORME GITHUB) ---
-logo_nome = "LOGO2025NOME.jpg" # Nome exato que aparece no seu print do GitHub
-try:
-    if os.path.exists(logo_nome):
-        st.image(Image.open(logo_nome), use_container_width=True)
-    else:
-        st.title("🐦‍⬛ FAMORTISCO AI")
-        st.warning(f"Aviso: O arquivo '{logo_nome}' não foi detectado na raiz do repositório.")
-except Exception as e:
+# --- 2. EXIBIÇÃO DO LOGO (TAMANHO AJUSTADO) ---
+logo_nome = "LOGO2025NOME.jpg"
+if os.path.exists(logo_nome):
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        st.image(Image.open(logo_nome), width=300)
+else:
     st.title("🐦‍⬛ FAMORTISCO AI")
 
-# --- 3. CONFIGURAÇÕES (SECRETS) ---
+# --- 3. CONFIGURAÇÕES E FUNÇÕES ---
 api_key = st.secrets.get("GOOGLE_API_KEY")
 email_user = st.secrets.get("EMAIL_REMETENTE")
 email_pass = st.secrets.get("EMAIL_SENHA")
@@ -63,7 +62,7 @@ def enviar_email(destino, conteudo):
         msg = MIMEMultipart()
         msg['From'] = email_user
         msg['To'] = destino
-        msg['Subject'] = "📜 Estratégia Literária - FAMORTISCO AI"
+        msg['Subject'] = "📜 Estratégia FAMORTISCO AI"
         msg.attach(MIMEText(conteudo, 'plain'))
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
@@ -76,28 +75,27 @@ def enviar_email(destino, conteudo):
 
 # --- 4. FLUXO PRINCIPAL ---
 st.markdown("### Procurar Arquivos")
-arquivo = st.file_uploader("Suba seu manuscrito (PDF ou DOCX)", type=['pdf', 'docx'], label_visibility="collapsed")
+arquivo = st.file_uploader("", type=['pdf', 'docx'], label_visibility="collapsed")
 
 if arquivo and api_key:
     try:
-        texto_extraido = ""
+        texto_ext = ""
         if arquivo.type == "application/pdf":
             reader = PdfReader(arquivo)
             for page in reader.pages[:10]:
-                texto_extraido += page.extract_text() or ""
+                texto_ext += page.extract_text() or ""
         else:
             doc = Document(arquivo)
-            texto_extraido = "\n".join([p.text for p in doc.paragraphs[:100]])
+            texto_ext = "\n".join([p.text for p in doc.paragraphs[:100]])
 
         if st.button("🚀 GERAR MINHA ESTRATÉGIA"):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
-            prompt = f"Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_extraido[:3500]}"
-            
-            with st.spinner('Gerando...'):
-                response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
-                if response.status_code == 200:
-                    st.session_state['resultado'] = response.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.success("Sucesso!")
+            prompt = f"Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_ext[:3500]}"
+            with st.spinner('Processando...'):
+                resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
+                if resp.status_code == 200:
+                    st.session_state['resultado'] = resp.json()['candidates'][0]['content']['parts'][0]['text']
+                    st.success("Gerado!")
                 else:
                     st.error("Erro na IA.")
 
@@ -106,9 +104,9 @@ if arquivo and api_key:
             st.divider()
             c1, c2 = st.columns(2)
             with c1:
-                email_dest = st.text_input("E-mail de destino:")
+                dest = st.text_input("E-mail:")
                 if st.button("Disparar E-mail"):
-                    if enviar_email(email_dest, st.session_state['resultado']):
+                    if enviar_email(dest, st.session_state['resultado']):
                         st.success("Enviado!")
             with c2:
                 num = st.text_input("WhatsApp:", value=meu_zap)
