@@ -5,11 +5,11 @@ from PyPDF2 import PdfReader
 st.set_page_config(page_title="BoostEbook AI", layout="centered")
 st.title("🧠 BoostEbook AI")
 
-# Busca a chave dos Secrets (que você já configurou!)
+# Pega a chave que você salvou corretamente nos Secrets
 api_key = st.secrets.get("GOOGLE_API_KEY")
 
 if api_key:
-    # Configuração oficial da biblioteca
+    # Configura a conexão oficial
     genai.configure(api_key=api_key)
     
     file = st.file_uploader("Suba seu ebook (PDF)", type=['pdf'])
@@ -18,22 +18,20 @@ if api_key:
         try:
             reader = PdfReader(file)
             texto = "".join([p.extract_text() or "" for p in reader.pages])
-            st.success("✅ PDF pronto para análise!")
+            st.success("✅ PDF lido com sucesso!")
             
             if st.button("🚀 GERAR ESTRATÉGIA DE MARKETING"):
-                with st.spinner('A IA está trabalhando para você...'):
-                    # Modelo de maior compatibilidade
+                with st.spinner('A IA está analisando seu conteúdo...'):
+                    # Modelo estável que evita o erro 404
                     model = genai.GenerativeModel('gemini-1.5-flash')
                     
-                    prompt = f"Crie uma estratégia de marketing viral para este livro: {texto[:4000]}"
-                    
+                    prompt = f"Crie uma estratégia de marketing para este livro: {texto[:4000]}"
                     response = model.generate_content(prompt)
                     
                     st.markdown("---")
-                    st.markdown("### 📈 Sua Estratégia Pronta:")
                     st.write(response.text)
                     st.balloons()
         except Exception as e:
-            st.error(f"Erro ao processar: {e}")
+            st.error(f"Erro: {e}")
 else:
     st.error("⚠️ Configure a GOOGLE_API_KEY nos Secrets.")
