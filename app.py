@@ -9,17 +9,14 @@ import urllib.parse
 from PIL import Image
 import os
 
-# --- 1. CONFIGURAÇÃO DE TEMA E IDIOMA ---
-# Adicionamos 'lang="pt-br"' no HTML para evitar traduções automáticas do navegador
+# --- 1. CONFIGURAÇÃO DE TEMA ---
 st.set_page_config(page_title="FAMORTISCO AI", page_icon="🐦‍⬛", layout="centered")
 
+# Estilo CSS blindado para evitar vazamento de texto na tela
 st.markdown("""
-    <html lang="pt-br">
     <style>
     .stApp { background-color: #FFFDD0; color: #1A1A1A; }
     h1, h2, h3, p, span, label { color: #1A1A1A !important; }
-    
-    /* Botões: Azul Royal que vira Verde */
     .stButton>button {
         width: 100%;
         border-radius: 8px;
@@ -27,12 +24,9 @@ st.markdown("""
         color: white !important;
         font-weight: bold;
         padding: 12px;
-        transition: 0.3s;
         border: none;
     }
     .stButton>button:hover { background-color: #2E7D32 !important; }
-    
-    /* Botão WhatsApp */
     div.stLinkButton > a {
         background-color: #25D366 !important;
         color: white !important;
@@ -44,7 +38,6 @@ st.markdown("""
         text-decoration: none;
     }
     </style>
-    </html>
     """, unsafe_allow_html=True)
 
 # --- 2. EXIBIÇÃO DO LOGO ---
@@ -52,11 +45,11 @@ logo_nome = "LOGO2025NOME.jpg"
 if os.path.exists(logo_nome):
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        st.image(Image.open(logo_nome), width=300)
+        st.image(Image.open(logo_nome), width=250)
 else:
     st.title("🐦‍⬛ FAMORTISCO AI")
 
-# --- 3. CONFIGURAÇÕES E FUNÇÕES ---
+# --- 3. CONFIGURAÇÕES ---
 api_key = st.secrets.get("GOOGLE_API_KEY")
 email_user = st.secrets.get("EMAIL_REMETENTE")
 email_pass = st.secrets.get("EMAIL_SENHA")
@@ -78,10 +71,9 @@ def enviar_email(destino, conteudo):
     except:
         return False
 
-# --- 4. INTERFACE TOTALMENTE EM PORTUGUÊS ---
+# --- 4. INTERFACE ---
 st.markdown("### Procurar Arquivos")
-# O label do uploader é o que aparece para o usuário
-arquivo = st.file_uploader("Arraste ou selecione seu manuscrito (PDF ou DOCX)", type=['pdf', 'docx'], label_visibility="collapsed")
+arquivo = st.file_uploader("", type=['pdf', 'docx'], label_visibility="collapsed")
 
 if arquivo and api_key:
     try:
@@ -97,34 +89,26 @@ if arquivo and api_key:
         if st.button("🚀 GERAR MINHA ESTRATÉGIA"):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
             prompt = f"Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_ext[:3500]}"
-            
-            with st.spinner('A IA está analisando seu livro...'):
+            with st.spinner('Analisando seu livro...'):
                 resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
                 if resp.status_code == 200:
                     st.session_state['resultado'] = resp.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.success("Estratégia Gerada!")
-                else:
-                    st.error("Erro na IA. Verifique sua chave.")
+                    st.success("Concluído!")
 
         if 'resultado' in st.session_state:
-            st.markdown("### 🖋️ O Plano Mestre:")
             st.info(st.session_state['resultado'])
-            
             st.divider()
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown("#### 📧 Enviar por E-mail")
-                dest = st.text_input("E-mail do autor:")
+                dest = st.text_input("E-mail para envio:")
                 if st.button("Disparar E-mail"):
                     if enviar_email(dest, st.session_state['resultado']):
-                        st.success("Enviado com sucesso!")
-            
+                        st.success("Enviado!")
             with c2:
-                st.markdown("#### 🟢 Enviar por WhatsApp")
-                num = st.text_input("Número (com DDD):", value=meu_zap)
+                num = st.text_input("WhatsApp (DDD):", value=meu_zap)
                 if num:
-                    resumo = f"*🚀 FAMORTISCO AI*\n\n{st.session_state['resultado'][:1500]}..."
+                    resumo = f"*🚀 FAMORTISCO AI*\n\n{st.session_state['resultado'][:1000]}"
                     link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resumo)}"
                     st.link_button("Abrir WhatsApp", link)
     except Exception as e:
-        st.error(f"Erro: {e}")
+        st.error(f"Erro técnico: {e}")
