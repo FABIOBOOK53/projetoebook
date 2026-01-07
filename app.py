@@ -42,7 +42,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. EXIBIÇÃO DO LOGO (TAMANHO AJUSTADO) ---
+# --- 2. EXIBIÇÃO DO LOGO ---
 logo_nome = "LOGO2025NOME.jpg"
 if os.path.exists(logo_nome):
     col1, col2, col3 = st.columns([1, 1, 1])
@@ -62,7 +62,7 @@ def enviar_email(destino, conteudo):
         msg = MIMEMultipart()
         msg['From'] = email_user
         msg['To'] = destino
-        msg['Subject'] = "📜 Estratégia FAMORTISCO AI"
+        msg['Subject'] = "📜 Sua Estratégia Literária - FAMORTISCO AI"
         msg.attach(MIMEText(conteudo, 'plain'))
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
@@ -73,9 +73,9 @@ def enviar_email(destino, conteudo):
     except:
         return False
 
-# --- 4. FLUXO PRINCIPAL ---
+# --- 4. FLUXO PRINCIPAL EM PORTUGUÊS ---
 st.markdown("### Procurar Arquivos")
-arquivo = st.file_uploader("", type=['pdf', 'docx'], label_visibility="collapsed")
+arquivo = st.file_uploader("Arraste ou selecione seu manuscrito (PDF ou DOCX)", type=['pdf', 'docx'], label_visibility="collapsed")
 
 if arquivo and api_key:
     try:
@@ -90,28 +90,39 @@ if arquivo and api_key:
 
         if st.button("🚀 GERAR MINHA ESTRATÉGIA"):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
-            prompt = f"Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_ext[:3500]}"
-            with st.spinner('Processando...'):
+            prompt = f"Você é um estrategista literário experiente. Crie roteiros de Reels, ASMR e um e-mail de vendas impactante baseado neste texto: {texto_ext[:3500]}"
+            
+            with st.spinner('A IA está analisando seu livro...'):
                 resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
                 if resp.status_code == 200:
                     st.session_state['resultado'] = resp.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.success("Gerado!")
+                    st.success("Estratégia Gerada com Sucesso!")
                 else:
-                    st.error("Erro na IA.")
+                    st.error("Erro na comunicação com a IA. Verifique sua chave API.")
 
         if 'resultado' in st.session_state:
+            st.markdown("### 🖋️ O Plano Mestre:")
             st.info(st.session_state['resultado'])
+            
             st.divider()
             c1, c2 = st.columns(2)
             with c1:
-                dest = st.text_input("E-mail:")
+                st.markdown("#### 📧 Enviar por E-mail")
+                dest = st.text_input("E-mail do destinatário:")
                 if st.button("Disparar E-mail"):
                     if enviar_email(dest, st.session_state['resultado']):
-                        st.success("Enviado!")
+                        st.success("E-mail enviado com sucesso!")
+                    else:
+                        st.error("Falha ao enviar e-mail. Verifique as configurações.")
+            
             with c2:
-                num = st.text_input("WhatsApp:", value=meu_zap)
+                st.markdown("#### 🟢 Enviar por WhatsApp")
+                num = st.text_input("Número do WhatsApp (com DDD):", value=meu_zap)
                 if num:
-                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(st.session_state['resultado'][:1500])}"
+                    resumo_zap = f"*🚀 FAMORTISCO AI: SUA ESTRATÉGIA*\n\n{st.session_state['resultado'][:1500]}..."
+                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resumo_zap)}"
                     st.link_button("Abrir WhatsApp", link)
     except Exception as e:
-        st.error(f"Erro: {e}")
+        st.error(f"Ocorreu um erro no processamento: {e}")
+elif not api_key:
+    st.warning("⚠️ Chave da API do Google não configurada nos Secrets do Streamlit.")
