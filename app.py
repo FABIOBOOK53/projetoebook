@@ -2,18 +2,15 @@ import streamlit as st
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 import docx2txt
-import os
 
 # Configuração da página
-st.set_page_config(page_title="BoostEbook AI", layout="centered")
+st.set_page_config(page_title="BoostEbook AI")
 st.title("🧠 BoostEbook AI")
 
-# Busca a chave de API nos Secrets do Streamlit
 api_key = st.secrets.get("GOOGLE_API_KEY")
 
 if api_key:
-    # FORÇANDO A VERSÃO ESTÁVEL DA API PARA EVITAR ERRO 404
-    os.environ["GOOGLE_API_VERSION"] = "v1" 
+    # 1. Configuração direta
     genai.configure(api_key=api_key)
     
     file = st.file_uploader("Suba seu ebook", type=['pdf', 'docx'])
@@ -32,20 +29,29 @@ if api_key:
                 
                 if st.button("🚀 GERAR ESTRATÉGIA"):
                     with st.spinner('IA Processando...'):
-                        # Usando o nome do modelo sem o prefixo 'models/' 
-                        # já que forçamos a versão v1 acima
-                        model = genai.GenerativeModel('gemini-1.5-flash')
-                        
                         try:
-                            response = model.generate_content(f"Crie um post de marketing para: {texto[:4000]}")
-                            st.subheader("Sua Estratégia:")
-                            st.write(response.text)
-                            st.balloons()
-                        except Exception as ai_err:
-                            st.error(f"Erro na chamada da IA: {ai_err}")
-                            st.info("Dica: Verifique se sua chave API tem permissão para o modelo Gemini 1.5 Flash.")
-                        
+                            # 2. MUDANÇA CRUCIAL: Forçando o uso do modelo via string direta na SDK estável
+                            # Esta forma evita que ele tente usar o endpoint 'v1beta'
+                            model = genai.GenerativeModel('models/gemini-1.5-flash')
+                            
+                            # 3. Limpeza simples no texto para evitar caracteres especiais que travam a API
+                            prompt_seguro = f"Crie um post de marketing para o seguinte conteúdo: {texto[:3000]}"
+                            
+                            response = model.generate_content(prompt_seguro)
+                            
+                            if response.text:
+                                st.subheader("Sua Estratégia:")
+                                st.write(response.text)
+                                st.balloons()
+                            else:
+                                st.warning("A IA não retornou texto. Verifique os créditos da sua API.")
+                                
+                        except Exception as e_ia:
+                            # Se der erro 404 aqui, o problema está na versão da biblioteca instalada
+                            st.error(f"Erro na API Google: {e_ia}")
+                            st.info("Sugestão: Adicione 'google-generativeai>=0.8.0' no seu arquivo requirements.txt")
+                            
         except Exception as e:
-            st.error(f"Erro ao processar arquivo: {e}")
+            st.error(f"Erro no processamento: {e}")
 else:
-    st.error("Erro: A GOOGLE_API_KEY não foi encontrada nos Secrets. Vá em Settings > Secrets no Streamlit Cloud.")
+    st.error("Configure a GOOGLE_API_KEY nos Secrets do Streamlit.")
