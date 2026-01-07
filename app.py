@@ -14,15 +14,8 @@ st.set_page_config(page_title="FAMORTISCO AI", page_icon="🐦‍⬛", layout="c
 
 st.markdown("""
     <style>
-    /* Fundo Creme */
-    .stApp {
-        background-color: #FFFDD0; 
-        color: #1A1A1A;
-    }
-    h1, h2, h3, p, span, label, .stMarkdown {
-        color: #1A1A1A !important;
-    }
-    /* Botão Azul Royal que vira Verde no Hover */
+    .stApp { background-color: #FFFDD0; color: #1A1A1A; }
+    h1, h2, h3, p, span, label, .stMarkdown { color: #1A1A1A !important; }
     .stButton>button {
         width: 100%;
         border-radius: 8px;
@@ -33,11 +26,7 @@ st.markdown("""
         padding: 12px;
         transition: 0.3s;
     }
-    .stButton>button:hover {
-        background-color: #2E7D32 !important;
-        color: #FFFFFF !important;
-    }
-    /* Estilização do Botão de WhatsApp */
+    .stButton>button:hover { background-color: #2E7D32 !important; color: #FFFFFF !important; }
     div.stLinkButton > a {
         background-color: #25D366 !important;
         color: white !important;
@@ -49,21 +38,23 @@ st.markdown("""
         text-decoration: none;
         border: 1px solid #128C7E;
     }
-    .stTextArea textarea {
-        background-color: #FFFFFF !important;
-        color: #1A1A1A !important;
-    }
+    .stTextArea textarea { background-color: #FFFFFF !important; color: #1A1A1A !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. EXIBIÇÃO DO LOGO (CORRIGIDO) ---
-# O nome abaixo deve ser IDÊNTICO ao arquivo no GitHub
-logo_path = "LOGO 2025 NOME.jpg" 
-if os.path.exists(logo_path):
-    st.image(Image.open(logo_path), use_container_width=True)
-else:
+# --- 2. EXIBIÇÃO DO LOGO (AJUSTADO PARA O GITHUB) ---
+# Tenta carregar o logo com o nome exato fornecido
+logo_nome = "LOGO 2025 NOME.jpg"
+try:
+    if os.path.exists(logo_nome):
+        img = Image.open(logo_nome)
+        st.image(img, use_container_width=True)
+    else:
+        st.title("🐦‍⬛ FAMORTISCO AI")
+        st.warning(f"Aviso: O arquivo '{logo_nome}' não foi detectado no repositório.")
+except Exception as e:
     st.title("🐦‍⬛ FAMORTISCO AI")
-    st.error(f"Erro: O arquivo '{logo_path}' não foi encontrado no repositório.")
+    st.error(f"Erro ao carregar imagem: {e}")
 
 # --- 3. CONFIGURAÇÕES (SECRETS) ---
 api_key = st.secrets.get("GOOGLE_API_KEY")
@@ -89,18 +80,53 @@ def enviar_email(destino, conteudo):
         return False
 
 # --- 4. FLUXO PRINCIPAL ---
-# Texto do botão alterado conforme solicitado
-arquivo = st.file_uploader("Suba seu manuscrito (PDF ou DOCX)", type=['pdf', 'docx'], label_visibility="visible")
-
-# Nota: O Streamlit traduz o botão nativo do uploader automaticamente 
-# para "Browse files" ou "Procurar arquivos" dependendo do navegador, 
-# mas forçamos o label acima para clareza.
+st.markdown("### Procurar Arquivos")
+arquivo = st.file_uploader("Suba seu manuscrito (PDF ou DOCX)", type=['pdf', 'docx'], label_visibility="collapsed")
 
 if arquivo and api_key:
     try:
+        texto_extraido = ""
         if arquivo.type == "application/pdf":
             reader = PdfReader(arquivo)
-            texto = "".join([p.extract_text() or "" for p in reader.pages[:10]])
+            for page in reader.pages[:10]:
+                texto_extraido += page.extract_text() or ""
         else:
             doc = Document(arquivo)
-            texto
+            texto_extraido = "\n".join([p.text for p in doc.paragraphs[:100]])
+
+        if st.button("🚀 GERAR MINHA ESTRATÉGIA"):
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+            prompt = f"Você é um estrategista literário. Crie roteiros de Reels, ASMR e e-mail de vendas para: {texto_extraido[:3500]}"
+            
+            with st.spinner('Gerando sua estratégia...'):
+                response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
+                if response.status_code == 200:
+                    st.session_state['resultado'] = response.json()['candidates'][0]['content']['parts'][0]['text']
+                    st.success("Estratégia Invocada!")
+                else:
+                    st.error("Erro na comunicação com a IA.")
+
+        if 'resultado' in st.session_state:
+            st.markdown("### 🖋️ O Plano Mestre:")
+            st.info(st.session_state['resultado'])
+            
+            st.divider()
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown("#### 📧 Enviar por E-mail")
+                email_dest = st.text_input("E-mail de destino:")
+                if st.button("Disparar E-mail"):
+                    if enviar_email(email_dest, st.session_state['resultado']):
+                        st.success("Enviado!")
+            with c2:
+                st.markdown("#### 🟢 Enviar por WhatsApp")
+                num = st.text_input("Número (DDD):", value=meu_zap)
+                if num:
+                    resumo_zap = f"*🚀 FAMORTISCO AI: ESTRATÉGIA*\n\n{st.session_state['resultado'][:1500]}..."
+                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resumo_zap)}"
+                    st.link_button("Abrir WhatsApp", link)
+    except Exception as e:
+        st.error(f"Ocorreu um erro técnico: {e}")
+else:
+    if not api_key:
+        st.warning("⚠️ Chave da API (GOOGLE_API_KEY) não configurada nos Secrets.")
