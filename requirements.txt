@@ -1,4 +1,2 @@
 streamlit
-openai
 PyPDF2
-# forçar atualização 2026
