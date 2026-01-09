@@ -3,6 +3,9 @@ from PyPDF2 import PdfReader
 from docx import Document
 import requests
 import urllib.parse
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 st.set_page_config(page_title="FAMORTISCO AI", layout="centered")
 st.title("FAMORTISCO AI")
@@ -38,11 +41,11 @@ if arquivo:
         st.warning("Não foi possível extrair texto do arquivo")
     else:
         st.success("Texto extraído com sucesso")
-
+        
+        # ---------------- BOTÃO GERAR ESTRATÉGIA ----------------
         if st.button("Gerar Estratégia"):
             with st.spinner("Processando..."):
                 if API_KEY:
-                    # --------- Tenta chamar IA real ---------
                     modelo_funcional = "models/gemini-2.5-flash"
                     url = f"https://generativelanguage.googleapis.com/v1/models/{modelo_funcional}:generateContent"
                     prompt = (
@@ -56,12 +59,10 @@ if arquivo:
                     try:
                         r = requests.post(url, headers=headers, json=payload, timeout=60)
                         if r.status_code == 200:
-                            resultado = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-                            st.text_area("Resultado da IA (real)", resultado, height=400)
+                            st.session_state['resultado'] = r.json()["candidates"][0]["content"]["parts"][0]["text"]
                         else:
-                            # --------- Se 404, usa simulação ---------
                             st.warning("Não foi possível chamar a IA real (conta Free). Mostrando resultado simulado.")
-                            resultado = (
+                            st.session_state['resultado'] = (
                                 "=== SIMULAÇÃO DE RESULTADO ===\n\n"
                                 "Resumo do seu arquivo:\n"
                                 + texto[:500]
@@ -71,13 +72,11 @@ if arquivo:
                                 "- Incentive engajamento com perguntas aos seguidores\n"
                                 "- Crie e-mails curtos e diretos promovendo o conteúdo"
                             )
-                            st.text_area("Resultado da IA (simulado)", resultado, height=400)
                     except Exception as e:
                         st.error(f"Erro de conexão: {e}")
                 else:
-                    # --------- Sem chave ---------
-                    st.warning("GOOGLE_API_KEY não configurada. Mostrando resultado simulado.")
-                    resultado = (
+                    st.warning("GOOGLE_API_KEY não configurada. Usando resultado simulado.")
+                    st.session_state['resultado'] = (
                         "=== SIMULAÇÃO DE RESULTADO ===\n\n"
                         "Resumo do seu arquivo:\n"
                         + texto[:500]
@@ -87,39 +86,27 @@ if arquivo:
                         "- Incentive engajamento com perguntas aos seguidores\n"
                         "- Crie e-mails curtos e diretos promovendo o conteúdo"
                     )
-                    st.text_area("Resultado da IA (simulado)", resultado, height=400)
 
-        # ---------------- OPÇÃO DE ENVIO ----------------
-        st.divider()
-        st.write("📤 Enviar resultado")
+        # ---------------- EXIBIR RESULTADO ----------------
+        if 'resultado' in st.session_state:
+            st.text_area("Resultado da IA", st.session_state['resultado'], height=400)
+            
+            st.divider()
+            st.write("📤 Enviar resultado")
 
-        if 'resultado' in locals():
-            c1, c2 = st.columns(2)
-            with c1:
-                num = st.text_input("WhatsApp (DDD+Número):", value=MEU_WHATSAPP)
-                if st.button("Enviar pelo WhatsApp"):
-                    if num:
-                        link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resultado[:1000])}"
-                        st.markdown(f"[Abrir WhatsApp]({link})", unsafe_allow_html=True)
-            with c2:
-                dest = st.text_input("E-mail para envio:")
-                if st.button("Enviar por E-mail"):
-                    import smtplib
-                    from email.mime.text import MIMEText
-                    from email.mime.multipart import MIMEMultipart
+            # ---------------- BOTÃO WHATSAPP ----------------
+            num = st.text_input("WhatsApp (DDD+Número):", value=MEU_WHATSAPP, key="num")
+            if st.button("Enviar pelo WhatsApp"):
+                if num:
+                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(st.session_state['resultado'][:1000])}"
+                    st.markdown(f"[Abrir WhatsApp]({link})", unsafe_allow_html=True)
 
+            # ---------------- BOTÃO E-MAIL ----------------
+            dest = st.text_input("E-mail para envio:", key="dest")
+            if st.button("Enviar por E-mail"):
+                if dest:
                     try:
                         msg = MIMEMultipart()
                         msg['From'] = EMAIL_REMETENTE
                         msg['To'] = dest
-                        msg['Subject'] = "📜 Sua Estratégia - FAMORTISCO AI"
-                        msg.attach(MIMEText(resultado, 'plain'))
-
-                        server = smtplib.SMTP('smtp.gmail.com', 587)
-                        server.starttls()
-                        server.login(EMAIL_REMETENTE, EMAIL_SENHA)
-                        server.send_message(msg)
-                        server.quit()
-                        st.success("E-mail enviado com sucesso!")
-                    except Exception as e:
-                        st.error(f"Erro ao enviar e-mail: {e}")
+                        msg['Subject'] = "📜 Sua Estratégia - FAMORT
