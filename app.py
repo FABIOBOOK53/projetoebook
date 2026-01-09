@@ -1,31 +1,71 @@
 import streamlit as st
 import requests
-import sqlite3
-import os
 from PyPDF2 import PdfReader
 from docx import Document
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import urllib.parse
-from PIL import Image
 
-# ================= CONFIG =================
-st.set_page_config(page_title="FAMORTISCO AI", page_icon="🐦‍⬛", layout="centered")
+st.set_page_config(page_title="FAMORTISCO AI", page_icon="🐦‍⬛")
+
+st.title("🐦‍⬛ FAMORTISCO AI")
+st.write("Versão de TESTE estável")
 
 api_key = st.secrets.get("GOOGLE_API_KEY", "")
-email_user = st.secrets.get("EMAIL_REMETENTE", "")
-email_pass = st.secrets.get("EMAIL_SENHA", "")
-meu_zap = st.secrets.get("MEU_WHATSAPP", "")
 
-# ================= DATABASE =================
-conn = sqlite3.connect("users.db", check_same_thread=False)
-cur = conn.cursor()
+def extrair_texto(arquivo):
+    if arquivo is None:
+        return ""
 
-cur.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE,
-    password TEXT,
-    plano TEXT DEFAULT 'free',
-    uso
+    if arquivo.type == "application/pdf":
+        reader = PdfReader(arquivo)
+        texto = ""
+        for p in reader.pages[:5]:
+            texto += p.extract_text() or ""
+        return texto
+
+    if arquivo.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        doc = Document(arquivo)
+        return "\n".join(p.text for p in doc.paragraphs[:50])
+
+    return ""
+
+arquivo = st.file_uploader(
+    "Envie um arquivo PDF ou DOCX",
+    type=["pdf", "docx"]
+)
+
+if arquivo:
+    texto = extrair_texto(arquivo)
+
+    if st.button("🚀 Gerar Estratégia"):
+        if not api_key:
+            st.error("API KEY não configurada")
+        else:
+            with st.spinner("Processando com IA..."):
+                url = (
+                    "https://generativelanguage.googleapis.com/v1/"
+                    "models/gemini-1.5-flash:generateContent"
+                    f"?key={api_key}"
+                )
+
+                prompt = (
+                    "Crie uma estratégia de marketing para o seguinte conteúdo:\n\n"
+                    + texto[:3000]
+                )
+
+                resp = requests.post(
+                    url,
+                    json={
+                        "contents": [
+                            {
+                                "parts": [
+                                    {"text": prompt}
+                                ]
+                            }
+                        ]
+                    }
+                )
+
+                if resp.status_code == 200:
+                    resultado = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+                    st.text_area("Resultado", resultado, height=300)
+                else:
+                    st.error("Erro ao chamar a IA")
