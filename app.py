@@ -1,8 +1,9 @@
 import streamlit as st
-import requests
 from PyPDF2 import PdfReader
 from docx import Document
+import requests
 
+# ---------------- CONFIGURAÇÃO ----------------
 st.set_page_config(page_title="FAMORTISCO AI", layout="centered")
 st.title("FAMORTISCO AI")
 st.write("Upload PDF/DOCX + geração de estratégia com Gemini 2.5")
@@ -18,20 +19,20 @@ def extrair_texto(arquivo):
     texto = ""
     if arquivo.type == "application/pdf":
         reader = PdfReader(arquivo)
-        for p in reader.pages[:5]:
+        for p in reader.pages[:5]:  # limite a 5 páginas
             t = p.extract_text()
             if t:
                 texto += t + "\n"
-    if arquivo.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    elif arquivo.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         doc = Document(arquivo)
-        for p in doc.paragraphs[:50]:
+        for p in doc.paragraphs[:50]:  # limite a 50 parágrafos
             texto += p.text + "\n"
     return texto.strip()
 
 # ---------------- UPLOAD ----------------
 arquivo = st.file_uploader("Envie PDF ou DOCX", type=["pdf","docx"])
 
-# ---------------- SELEÇÃO DE MODELO ----------------
+# ---------------- LISTA DE MODELOS REAIS ----------------
 modelos_disponiveis = [
     "models/gemini-2.5-flash",
     "models/gemini-2.5-pro",
@@ -42,7 +43,7 @@ modelos_disponiveis = [
     "models/gemini-2.5-flash-lite"
 ]
 
-st.write("Modelos disponíveis para teste:")
+st.write("Modelos disponíveis:")
 st.write(modelos_disponiveis)
 
 modelo_funcional = st.selectbox("Escolha o modelo", modelos_disponiveis, index=0)
@@ -58,7 +59,11 @@ if arquivo and modelo_funcional:
         if st.button("Gerar Estratégia"):
             with st.spinner("Chamando a IA..."):
                 url = f"https://generativelanguage.googleapis.com/v1/models/{modelo_funcional}:generateContent"
-                prompt = "Você é um especialista em marketing digital. Crie uma estratégia prática baseada no texto abaixo:\n\n" + texto[:3000]
+                prompt = (
+                    "Você é um especialista em marketing digital.\n"
+                    "Crie uma estratégia prática baseada no texto abaixo:\n\n"
+                    + texto[:3000]
+                )
                 payload = {"contents":[{"parts":[{"text":prompt}]}]}
                 headers = {"Content-Type":"application/json","x-goog-api-key":API_KEY}
 
