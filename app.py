@@ -2,15 +2,19 @@ import streamlit as st
 from PyPDF2 import PdfReader
 from docx import Document
 import requests
+import urllib.parse
 
 st.set_page_config(page_title="FAMORTISCO AI", layout="centered")
 st.title("FAMORTISCO AI")
-st.write("Upload PDF/DOCX + geração de estratégia com Gemini 2.5")
+st.write("Upload PDF/DOCX + geração de estratégia")
 
-# ---------------- API KEY ----------------
+# ---------------- SECRETS ----------------
 API_KEY = st.secrets.get("GOOGLE_API_KEY")
+MEU_WHATSAPP = st.secrets.get("MEU_WHATSAPP", "")
+EMAIL_REMETENTE = st.secrets.get("EMAIL_REMETENTE")
+EMAIL_SENHA = st.secrets.get("EMAIL_SENHA")
 
-# Função para extrair texto de PDF/DOCX
+# ---------------- FUNÇÃO PARA EXTRAIR TEXTO ----------------
 def extrair_texto(arquivo):
     texto = ""
     if arquivo.type == "application/pdf":
@@ -37,18 +41,15 @@ if arquivo:
 
         if st.button("Gerar Estratégia"):
             with st.spinner("Processando..."):
-                # --------- Verifica se a conta tem chave ---------
                 if API_KEY:
-                    # --------- Chamada para IA real ---------
-                    modelo_funcional = "models/gemini-2.5-flash"  # modelo real
+                    # --------- Tenta chamar IA real ---------
+                    modelo_funcional = "models/gemini-2.5-flash"
                     url = f"https://generativelanguage.googleapis.com/v1/models/{modelo_funcional}:generateContent"
-
                     prompt = (
                         "Você é um especialista em marketing digital.\n"
                         "Crie roteiros de Reels, ASMR e e-mail de vendas com base no texto abaixo:\n\n"
                         + texto[:3500]
                     )
-
                     payload = {"contents":[{"parts":[{"text":prompt}]}]}
                     headers = {"Content-Type":"application/json", "x-goog-api-key":API_KEY}
 
@@ -58,9 +59,9 @@ if arquivo:
                             resultado = r.json()["candidates"][0]["content"]["parts"][0]["text"]
                             st.text_area("Resultado da IA (real)", resultado, height=400)
                         else:
-                            # Se 404 (Free account), usa simulação
+                            # --------- Se 404, usa simulação ---------
                             st.warning("Não foi possível chamar a IA real (conta Free). Mostrando resultado simulado.")
-                            resultado_simulado = (
+                            resultado = (
                                 "=== SIMULAÇÃO DE RESULTADO ===\n\n"
                                 "Resumo do seu arquivo:\n"
                                 + texto[:500]
@@ -70,13 +71,13 @@ if arquivo:
                                 "- Incentive engajamento com perguntas aos seguidores\n"
                                 "- Crie e-mails curtos e diretos promovendo o conteúdo"
                             )
-                            st.text_area("Resultado da IA (simulado)", resultado_simulado, height=400)
+                            st.text_area("Resultado da IA (simulado)", resultado, height=400)
                     except Exception as e:
                         st.error(f"Erro de conexão: {e}")
                 else:
-                    # --------- Conta sem chave ---------
-                    st.warning("GOOGLE_API_KEY não configurada. Usando resultado simulado.")
-                    resultado_simulado = (
+                    # --------- Sem chave ---------
+                    st.warning("GOOGLE_API_KEY não configurada. Mostrando resultado simulado.")
+                    resultado = (
                         "=== SIMULAÇÃO DE RESULTADO ===\n\n"
                         "Resumo do seu arquivo:\n"
                         + texto[:500]
@@ -86,4 +87,39 @@ if arquivo:
                         "- Incentive engajamento com perguntas aos seguidores\n"
                         "- Crie e-mails curtos e diretos promovendo o conteúdo"
                     )
-                    st.text_area("Resultado da IA (simulado)", resultado_simulado, height=400)
+                    st.text_area("Resultado da IA (simulado)", resultado, height=400)
+
+        # ---------------- OPÇÃO DE ENVIO ----------------
+        st.divider()
+        st.write("📤 Enviar resultado")
+
+        if 'resultado' in locals():
+            c1, c2 = st.columns(2)
+            with c1:
+                num = st.text_input("WhatsApp (DDD+Número):", value=MEU_WHATSAPP)
+                if st.button("Enviar pelo WhatsApp"):
+                    if num:
+                        link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(resultado[:1000])}"
+                        st.markdown(f"[Abrir WhatsApp]({link})", unsafe_allow_html=True)
+            with c2:
+                dest = st.text_input("E-mail para envio:")
+                if st.button("Enviar por E-mail"):
+                    import smtplib
+                    from email.mime.text import MIMEText
+                    from email.mime.multipart import MIMEMultipart
+
+                    try:
+                        msg = MIMEMultipart()
+                        msg['From'] = EMAIL_REMETENTE
+                        msg['To'] = dest
+                        msg['Subject'] = "📜 Sua Estratégia - FAMORTISCO AI"
+                        msg.attach(MIMEText(resultado, 'plain'))
+
+                        server = smtplib.SMTP('smtp.gmail.com', 587)
+                        server.starttls()
+                        server.login(EMAIL_REMETENTE, EMAIL_SENHA)
+                        server.send_message(msg)
+                        server.quit()
+                        st.success("E-mail enviado com sucesso!")
+                    except Exception as e:
+                        st.error(f"Erro ao enviar e-mail: {e}")
