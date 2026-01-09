@@ -6,7 +6,7 @@ from docx import Document
 st.set_page_config(page_title="FAMORTISCO AI")
 
 st.title("FAMORTISCO AI")
-st.write("Versao de teste - Gemini API (corrigido)")
+st.write("Versao de teste - Gemini 1.0 PRO")
 
 api_key = st.secrets.get("GOOGLE_API_KEY", "")
 
@@ -48,7 +48,7 @@ if arquivo is not None:
 
             url = (
                 "https://generativelanguage.googleapis.com/v1beta/"
-                "models/gemini-1.5-flash-latest:generateContent"
+                "models/gemini-1.0-pro:generateContent"
                 "?key=" + api_key
             )
 
@@ -74,5 +74,3 @@ if arquivo is not None:
                 resultado = data["candidates"][0]["content"]["parts"][0]["text"]
                 st.text_area("Resultado", resultado, height=300)
             else:
-                st.error("Erro ao chamar IA")
-                st.code(resposta.text)
