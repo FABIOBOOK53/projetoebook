@@ -6,7 +6,7 @@ from docx import Document
 st.set_page_config(page_title="FAMORTISCO AI")
 
 st.title("FAMORTISCO AI")
-st.write("Versao de teste - Gemini API")
+st.write("Versao de teste - Gemini API (corrigido)")
 
 api_key = st.secrets.get("GOOGLE_API_KEY", "")
 
@@ -45,9 +45,17 @@ if arquivo is not None:
             st.error("Nao foi possivel extrair texto")
         else:
             st.info("Chamando a IA...")
-            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + api_key
 
-            prompt = "Crie uma estrategia de marketing para o conteudo abaixo:\n\n" + texto[:3000]
+            url = (
+                "https://generativelanguage.googleapis.com/v1beta/"
+                "models/gemini-1.5-flash-latest:generateContent"
+                "?key=" + api_key
+            )
+
+            prompt = (
+                "Crie uma estrategia de marketing digital para o conteudo abaixo:\n\n"
+                + texto[:3000]
+            )
 
             payload = {
                 "contents": [
