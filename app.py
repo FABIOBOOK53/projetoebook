@@ -9,11 +9,8 @@ st.write("Upload PDF/DOCX + geração de estratégia com Gemini 2.5")
 
 # ---------------- API KEY ----------------
 API_KEY = st.secrets.get("GOOGLE_API_KEY")
-if not API_KEY:
-    st.error("GOOGLE_API_KEY não configurada")
-    st.stop()
 
-# ---------------- FUNÇÃO PARA EXTRAIR TEXTO ----------------
+# Função para extrair texto de PDF/DOCX
 def extrair_texto(arquivo):
     texto = ""
     if arquivo.type == "application/pdf":
@@ -38,12 +35,12 @@ if arquivo:
     else:
         st.success("Texto extraído com sucesso")
 
-        # ---------------- BOTÃO GERAR ESTRATÉGIA ----------------
         if st.button("Gerar Estratégia"):
-            with st.spinner("Chamando a IA..."):
-                try:
-                    # Define o modelo e URL dentro do bloco, sem quebrar indentação
-                    modelo_funcional = "models/gemini-2.5-flash"
+            with st.spinner("Processando..."):
+                # --------- Verifica se a conta tem chave ---------
+                if API_KEY:
+                    # --------- Chamada para IA real ---------
+                    modelo_funcional = "models/gemini-2.5-flash"  # modelo real
                     url = f"https://generativelanguage.googleapis.com/v1/models/{modelo_funcional}:generateContent"
 
                     prompt = (
@@ -55,12 +52,38 @@ if arquivo:
                     payload = {"contents":[{"parts":[{"text":prompt}]}]}
                     headers = {"Content-Type":"application/json", "x-goog-api-key":API_KEY}
 
-                    r = requests.post(url, headers=headers, json=payload, timeout=60)
-                    if r.status_code == 200:
-                        resultado = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-                        st.text_area("Resultado da IA", resultado, height=400)
-                    else:
-                        st.error(f"Erro ao chamar a IA: {r.status_code}")
-                        st.code(r.text)
-                except Exception as e:
-                    st.error(f"Erro de conexão: {e}")
+                    try:
+                        r = requests.post(url, headers=headers, json=payload, timeout=60)
+                        if r.status_code == 200:
+                            resultado = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+                            st.text_area("Resultado da IA (real)", resultado, height=400)
+                        else:
+                            # Se 404 (Free account), usa simulação
+                            st.warning("Não foi possível chamar a IA real (conta Free). Mostrando resultado simulado.")
+                            resultado_simulado = (
+                                "=== SIMULAÇÃO DE RESULTADO ===\n\n"
+                                "Resumo do seu arquivo:\n"
+                                + texto[:500]
+                                + "\n\nSugestão de estratégia:\n"
+                                "- Use títulos chamativos\n"
+                                "- Poste snippets do conteúdo nas redes sociais\n"
+                                "- Incentive engajamento com perguntas aos seguidores\n"
+                                "- Crie e-mails curtos e diretos promovendo o conteúdo"
+                            )
+                            st.text_area("Resultado da IA (simulado)", resultado_simulado, height=400)
+                    except Exception as e:
+                        st.error(f"Erro de conexão: {e}")
+                else:
+                    # --------- Conta sem chave ---------
+                    st.warning("GOOGLE_API_KEY não configurada. Usando resultado simulado.")
+                    resultado_simulado = (
+                        "=== SIMULAÇÃO DE RESULTADO ===\n\n"
+                        "Resumo do seu arquivo:\n"
+                        + texto[:500]
+                        + "\n\nSugestão de estratégia:\n"
+                        "- Use títulos chamativos\n"
+                        "- Poste snippets do conteúdo nas redes sociais\n"
+                        "- Incentive engajamento com perguntas aos seguidores\n"
+                        "- Crie e-mails curtos e diretos promovendo o conteúdo"
+                    )
+                    st.text_area("Resultado da IA (simulado)", resultado_simulado, height=400)
