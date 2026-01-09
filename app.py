@@ -3,74 +3,101 @@ import requests
 from PyPDF2 import PdfReader
 from docx import Document
 
-st.set_page_config(page_title="FAMORTISCO AI")
+# =====================================================
+# CONFIGURAÇÃO DO APP
+# =====================================================
+st.set_page_config(
+    page_title="FAMORTISCO AI",
+    layout="centered"
+)
 
 st.title("FAMORTISCO AI")
-st.write("Versao de teste - Gemini 1.0 PRO")
+st.subheader("Análise de PDF e DOCX com IA")
 
-api_key = st.secrets.get("GOOGLE_API_KEY", "")
+# =====================================================
+# CHAVE DA API (STREAMLIT SECRETS)
+# =====================================================
+GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
 
+if not GOOGLE_API_KEY:
+    st.error("GOOGLE_API_KEY não encontrada nos Secrets.")
+    st.stop()
+
+# =====================================================
+# FUNÇÃO DE EXTRAÇÃO DE TEXTO
+# =====================================================
 def extrair_texto(arquivo):
-    if arquivo is None:
-        return ""
+    texto = ""
 
     if arquivo.type == "application/pdf":
-        reader = PdfReader(arquivo)
-        texto = ""
-        for p in reader.pages[:5]:
-            texto = texto + (p.extract_text() or "")
-        return texto
+        leitor = PdfReader(arquivo)
+        for pagina in leitor.pages[:5]:
+            texto += pagina.extract_text() or ""
 
-    if arquivo.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        doc = Document(arquivo)
-        texto = ""
-        for p in doc.paragraphs[:50]:
-            texto = texto + p.text + "\n"
-        return texto
+    elif arquivo.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        documento = Document(arquivo)
+        for paragrafo in documento.paragraphs[:50]:
+            texto += paragrafo.text + "\n"
 
-    return ""
+    return texto.strip()
 
+# =====================================================
+# INTERFACE
+# =====================================================
 arquivo = st.file_uploader(
-    "Envie um arquivo PDF ou DOCX",
+    "Selecione um arquivo",
     type=["pdf", "docx"]
 )
 
 if arquivo is not None:
-    texto = extrair_texto(arquivo)
+    texto_extraido = extrair_texto(arquivo)
 
-    if st.button("Gerar Estrategia"):
-        if api_key == "":
-            st.error("GOOGLE_API_KEY nao configurada")
-        elif texto.strip() == "":
-            st.error("Nao foi possivel extrair texto")
-        else:
-            st.info("Chamando a IA...")
+    if texto_extraido == "":
+        st.warning("Não foi possível extrair texto do arquivo.")
+    else:
+        st.success("Texto extraído com sucesso.")
 
-            url = (
-                "https://generativelanguage.googleapis.com/v1beta/"
-                "models/gemini-1.0-pro:generateContent"
-                "?key=" + api_key
-            )
+        if st.button("🚀 Gerar Estratégia com IA"):
+            with st.spinner("Chamando a IA..."):
+                url = (
+                    "https://generativelanguage.googleapis.com/v1beta/"
+                    "models/gemini-1.0-pro:generateContent"
+                    "?key=" + GOOGLE_API_KEY
+                )
 
-            prompt = (
-                "Crie uma estrategia de marketing digital para o conteudo abaixo:\n\n"
-                + texto[:3000]
-            )
+                prompt = (
+                    "Você é um especialista em marketing digital. "
+                    "Crie uma estratégia de marketing clara e prática "
+                    "com base no conteúdo abaixo:\n\n"
+                    + texto_extraido[:3000]
+                )
 
-            payload = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": prompt}
-                        ]
-                    }
-                ]
-            }
+                payload = {
+                    "contents": [
+                        {
+                            "parts": [
+                                {"text": prompt}
+                            ]
+                        }
+                    ]
+                }
 
-            resposta = requests.post(url, json=payload)
+                resposta = requests.post(url, json=payload)
 
-            if resposta.status_code == 200:
-                data = resposta.json()
-                resultado = data["candidates"][0]["content"]["parts"][0]["text"]
-                st.text_area("Resultado", resultado, height=300)
-            else:
+                if resposta.status_code == 200:
+                    dados = resposta.json()
+
+                    try:
+                        resultado = dados["candidates"][0]["content"]["parts"][0]["text"]
+                        st.text_area(
+                            "Resultado gerado pela IA",
+                            resultado,
+                            height=400
+                        )
+                    except Exception:
+                        st.error("Resposta inesperada da IA.")
+                        st.json(dados)
+
+                else:
+                    st.error("Erro ao chamar a IA.")
+                    st.code(resposta.text)
