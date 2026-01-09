@@ -82,31 +82,4 @@ if arquivo:
                         + texto[:500]
                         + "\n\nSugestão de estratégia:\n"
                         "- Use títulos chamativos\n"
-                        "- Poste snippets do conteúdo nas redes sociais\n"
-                        "- Incentive engajamento com perguntas aos seguidores\n"
-                        "- Crie e-mails curtos e diretos promovendo o conteúdo"
-                    )
-
-        # ---------------- EXIBIR RESULTADO ----------------
-        if 'resultado' in st.session_state:
-            st.text_area("Resultado da IA", st.session_state['resultado'], height=400)
-            
-            st.divider()
-            st.write("📤 Enviar resultado")
-
-            # ---------------- BOTÃO WHATSAPP ----------------
-            num = st.text_input("WhatsApp (DDD+Número):", value=MEU_WHATSAPP, key="num")
-            if st.button("Enviar pelo WhatsApp"):
-                if num:
-                    link = f"https://api.whatsapp.com/send?phone={num}&text={urllib.parse.quote(st.session_state['resultado'][:1000])}"
-                    st.markdown(f"[Abrir WhatsApp]({link})", unsafe_allow_html=True)
-
-            # ---------------- BOTÃO E-MAIL ----------------
-            dest = st.text_input("E-mail para envio:", key="dest")
-            if st.button("Enviar por E-mail"):
-                if dest:
-                    try:
-                        msg = MIMEMultipart()
-                        msg['From'] = EMAIL_REMETENTE
-                        msg['To'] = dest
-                        msg['Subject'] = "📜 Sua Estratégia - FAMORT
+                        "- Poste snippets do conteúdo nas redes soci
